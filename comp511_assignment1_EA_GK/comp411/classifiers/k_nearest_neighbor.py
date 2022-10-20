@@ -84,7 +84,7 @@ class KNearestNeighbor(object):
                 #####################################################################
                 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-                pass
+                dists[i,j] = np.sum(np.square(self.X_train[j] - X[i]))
                 
                 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -108,7 +108,7 @@ class KNearestNeighbor(object):
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             
-            pass
+            dists[i] = np.sum(np.square(self.X_train - X[i]), axis = 1)
             
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -138,7 +138,7 @@ class KNearestNeighbor(object):
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        dists = np.sum(np.square(self.Xtrain), axis = 1) - 2*np.dot(X, self_Xtrain.T) + np.sum(np.square(x))
         
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -171,7 +171,7 @@ class KNearestNeighbor(object):
                 #####################################################################
                 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
                 
-                pass
+                dists[i, j] = np.dot(X[i], self.X_train[j].T)/((np.sum(np.square(self.X_train[j])))*(np.sum(np.square(X[i]))))
                 
                 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -195,8 +195,7 @@ class KNearestNeighbor(object):
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             
-            pass
-            
+            dists[i] = np.sum(np.dot(X[i], self.X_train.T), axis = 1) / (np.sum(np.square(self.X_train[j]), axis = 1)*np.sum(np.square(self.X_train)))            
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
     
@@ -259,7 +258,7 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            closest_y.append(self.y_train[np.argsort(dists[i, :])[:k]])
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             #########################################################################
@@ -271,7 +270,7 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            y_pred[i] = np.max(np.array(closest_y), axis = -1)
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
