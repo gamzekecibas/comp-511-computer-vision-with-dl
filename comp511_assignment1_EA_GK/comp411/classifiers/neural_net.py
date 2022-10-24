@@ -88,7 +88,13 @@ class FourLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        h1 = X @ W1 + b1
+        a1 = np.maximum(0, h1)
+        h2 = a1 @ W2 + b2
+        a2 = np.maximum(0, h2)
+        h3 = a2 @ W3 + b3
+        a3 = np.maximum(0, h3)
+        scores = a3 @ W4 + b4
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -105,9 +111,17 @@ class FourLayerNet(object):
         # classifier loss.                                                          #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        def safelog(x):
+            return(np.log(x + 1e-100))
         
-        pass
-
+        scores = scores - np.max(scores, axis=1, keepdims=True)
+        probs = np.exp(scores)/np.sum(np.exp(scores), axis = 1, keepdims = True) #Softmax generates probability, between 0 & 1.
+        
+        ### LOSS = data_loss + regularization_loss
+        data_loss = np.sum(-safelog(probs[np.arange(N), y]))/N
+        regl_loss = reg * (np.sum(W1 * W1) + np.sum(W2 * W2) + np.sum(W3 * W3) + np.sum(W4 * W4))
+        
+        loss = data_loss + regl_loss
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # Backward pass: compute gradients
@@ -118,9 +132,34 @@ class FourLayerNet(object):
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
-    
+        
+        dscore = probs.reshape(N, -1)
+        dscore[np.arange(N), y] = dscore[np.arange(N), y] - 1 
+        
+        dw4 = np.dot(a3.T, dscore)
+        db4 = np.sum(dscore, axis = 0)
+        
+        dw3 = np.dot(dscore, W4.T)
+        da3 = dw3 * (h3 > 0)
+        dw3 = np.dot(a2.T, da3)
+        db3 = np.sum(da3, axis = 0)
+        
+        dw2 = np.dot(da3, W3.T)
+        da2 = dw2 * (h2 > 0)
+        dw2 = np.dot(a1.T, da2)
+        db2 = np.sum(da2, axis = 0)
+        
+        dw1 = np.dot(da2, W2.T)
+        da1 = dw1 * (h1 >0)
+        dw1 = np.dot(X.T, da1)
+        db1 = np.sum(da1, axis = 0)
+        
+        dw1 += 2*reg*W1
+        dw2 += 2*reg*W2
+        dw3 += 2*reg*W3
+        dw4 += 2*reg*W4
+        
+        grads = {'W1': dw1, 'b1': db1, 'W2': dw2, 'b2': db2, 'W3': dw3, 'b3': db3, 'W4': dw4, 'b4': db4}
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
@@ -163,8 +202,9 @@ class FourLayerNet(object):
             # them in X_batch and y_batch respectively.                             #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
+            batch_idx = np.random.choice(num_train, batch_size)
+            X_batch = X[batch_idx]
+            y_batch = y[batch_idx]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -180,7 +220,8 @@ class FourLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             
-            pass
+            for param in self.params:
+                self.params[param] -= learning_rate * grads[param]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -226,7 +267,7 @@ class FourLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        y_pred = self.loss(X).argmax(axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
