@@ -133,13 +133,14 @@ class FourLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        dscore = probs.reshape(N, -1)
-        dscore[np.arange(N), y] = dscore[np.arange(N), y] - 1 
+        softmax = probs
+        softmax[range(N) ,y] -= 1
+        softmax /= N
         
-        dw4 = np.dot(a3.T, dscore)
-        db4 = np.sum(dscore, axis = 0)
+        dw4 = np.dot(a3.T, softmax)
+        db4 = np.sum(softmax, axis = 0)
         
-        dw3 = np.dot(dscore, W4.T)
+        dw3 = np.dot(softmax, W4.T)
         da3 = dw3 * (h3 > 0)
         dw3 = np.dot(a2.T, da3)
         db3 = np.sum(da3, axis = 0)
