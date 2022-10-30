@@ -19,7 +19,7 @@ class FourLayerNet(object):
     The outputs of the third fully-connected layer are the scores for each class.
     """
 
-    def __init__(self, input_size, hidden_size, output_size, std=1e-3):
+    def __init__(self, input_size, hidden_size, output_size, std=1e-2):
         """
         Initialize the model. Weights are initialized to small random values and
         biases are initialized to zero. Weights and biases are stored in the
@@ -118,7 +118,7 @@ class FourLayerNet(object):
         probs = np.exp(scores)/np.sum(np.exp(scores), axis = 1, keepdims = True) #Softmax generates probability, between 0 & 1.
         
         ### LOSS = data_loss + regularization_loss
-        data_loss = np.sum(-safelog(probs[np.arange(N), y]))/N
+        data_loss = np.sum(-safelog(probs[range(N), y]))*(1/N)
         regl_loss = reg * (np.sum(W1 * W1) + np.sum(W2 * W2) + np.sum(W3 * W3) + np.sum(W4 * W4))
         
         loss = data_loss + regl_loss
@@ -135,7 +135,7 @@ class FourLayerNet(object):
         
         softmax = probs
         softmax[range(N) ,y] -= 1
-        softmax /= N
+        softmax *= (1/N)
         
         dw4 = np.dot(a3.T, softmax)
         db4 = np.sum(softmax, axis = 0)
@@ -221,8 +221,17 @@ class FourLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             
-            for param in self.params:
-                self.params[param] -= learning_rate * grads[param]
+            self.params['W1'] = self.params['W1'] - learning_rate*grads['W1'] 
+            self.params['b1'] = self.params['b1'] - learning_rate*grads['b1']
+            
+            self.params['W2'] = self.params['W2'] - learning_rate*grads['W2'] 
+            self.params['b2'] = self.params['b2'] - learning_rate*grads['b2']
+            
+            self.params['W3'] = self.params['W3'] - learning_rate*grads['W3'] 
+            self.params['b3'] = self.params['b3'] - learning_rate*grads['b3'] 
+            
+            self.params['W4'] = self.params['W4'] - learning_rate*grads['W4'] 
+            self.params['b4'] = self.params['b4'] - learning_rate*grads['b4'] 
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
