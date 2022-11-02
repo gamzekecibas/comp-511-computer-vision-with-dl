@@ -40,9 +40,46 @@ def softmax_loss_naive(W, X, y, reg_l2, reg_l1 = 0):
     # else implement both L2 and L1.                                             #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-
+    def safelog(x):
+        return(np.log(x + 1e-200))
+    
+    num_samples = X.shape[0]    
+    num_classes = W.shape[1]
+    
+    # scores: shape (N, C)
+    scores = np.dot(X, W)
+    
+    for sample in range(num_samples):
+        # scaling the values for numeric stability, i.e. make highest number 0
+        x = scores[sample] - np.max(scores[sample])
+        
+        # calculate loss
+        softmax = np.exp(x) / np.sum(np.exp(x))
+        loss = loss - np.log(softmax[y[sample]])
+     
+        # gradient operations
+        for c in range(num_classes):
+            dW[:,c] += X[sample] * softmax[c]
+        dW[:,y[sample]] = dW[:,y[sample]] - X[sample]
+    
+    ## regularization part, 
+    ## reg_l1 value changes the regularization method
+    if reg_l1 == 0:
+        ## just L2 regularization
+        reg = reg_l2 * np.sum(W*W)
+    else:
+    ## When reg_l1 has a value, ElasticNet is used for regularization
+        alpha, beta = 0.1, 0.1
+        reg_1 = reg_l1 * np.sum(W)
+        reg_2 = reg_l2 * np.sum(W*W)
+        
+        reg = alpha * reg_1 + 0.5 * beta * np.power(reg_2, 2)
+        
+    loss /= X.shape[0]
+    loss += reg
+    
+    dW /= X.shape[0]
+    dW += 2*reg*W
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     return loss, dW
@@ -71,9 +108,38 @@ def softmax_loss_vectorized(W, X, y, reg_l2, reg_l1 = 0):
     # else implement both L2 and L1.                                             #
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-
+    def safelog(x):
+        return(np.log(x + 1e-100))
+    
+    scores = np.dot(X, W)
+    scores -= np.max(scores)
+    scores = np.exp(scores)
+    
+    softmax = scores[range(X.shape[0]), y] / np.sum(scores, axis = 1)
+    
+    ## regularization part, 
+    ## reg_l1 value changes the regularization method
+    if reg_l1 == 0:
+        ## just L2 regularization
+        reg = reg_l2 * np.sum(W*W)
+    else:
+    ## When reg_l1 has a value, ElasticNet is used for regularization
+        alpha, beta = 0.5, 0.5
+        reg_1 = reg_l1 * np.sum(W)
+        reg_2 = reg_l2 * np.sum(W*W)
+        
+        reg = alpha * reg_1 + 0.5 * beta * np.power(reg_2, 2)
+    
+    loss = np.sum(-safelog(softmax))
+    loss /= X.shape[0]
+    loss += reg
+    
+    ## gradient step
+    derivative = scores / np.sum(scores, axis = 1, keepdims = True)
+    derivative[np.arange(X.shape[0]), y] -= 1
+    
+    dW = np.dot(X.T, derivative) / X.shape[0]
+    dW += 2*reg*W
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     return loss, dW
