@@ -28,7 +28,9 @@ def affine_forward(x, w, b):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
-    pass
+    numSample = x.shape[0]
+    out = np.dot(x.reshape(numSample, -1), w)
+    out += b
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -62,7 +64,14 @@ def affine_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****    
     
-    pass
+    numSample = x.shape[0]
+    flat_x = x.reshape(numSample, -1)
+    
+    dx = dout @ w.T
+    dw = flat_x.T @ dout
+    db = np.sum(dout, axis = 0)
+    
+    dx = dx.reshape(x.shape)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -87,7 +96,7 @@ def sigmoid_forward(x):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.power((1 + np.exp(-x)), -1)
     
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -113,7 +122,9 @@ def sigmoid_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
-    pass
+    sigmoid_res = sigmoid_forward(x)
+    dx = sigmoid_res[0] *(1 - sigmoid_res[0])
+    dx *= dout
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -139,7 +150,7 @@ def relu_forward(x):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.maximum(0 ,x)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -166,7 +177,7 @@ def relu_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
-    pass
+    dx = dout * (x > 0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -197,7 +208,7 @@ def leaky_relu_forward(x, lrelu_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.maximum(alpha*x, x)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -227,7 +238,9 @@ def leaky_relu_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    dx = np.ones_like(x)
+    dx[x < 0] = alpha
+    dx *= dout
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -276,8 +289,10 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
-
+        #mask = (np.random.rand(*x.shape) < p)
+        #out = x * mask / p
+        mask = (np.random.rand(*x.shape) < p) / p
+        out = x*mask #drop!
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
         #                           END OF YOUR CODE                          #
@@ -288,7 +303,7 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        out = x
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -319,7 +334,7 @@ def dropout_backward(dout, cache):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        dx = mask * dout
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -368,7 +383,37 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    stride, pad = conv_param['stride'], conv_param['pad']
+    padding = ((0,0), (0,0), (pad, pad), (pad, pad))
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    
+    # output dimensions
+    H_out = int(1 + (H + 2 * pad - HH) / stride)
+    W_out = int(1 + (W + 2 * pad - WW) / stride)
+
+    #print(W_out)
+    output_shape = (N,F,H_out,W_out)
+    
+    # zero-padding
+    padded = np.pad(x, padding, mode='constant')
+    H_padded, W_padded = padded.shape[2], padded.shape[3]
+    
+    # implement forward matrices
+    W_flatten = w.reshape(F, -1)
+    X_column = np.zeros((C*HH*WW, H_out*W_out))
+    #b = b.reshape(F,1)
+    
+    # convolution operation
+    out = np.zeros(output_shape)
+    for i in range(N):
+        cntr = 0
+        for row in range(0, H_padded-HH+1, stride):
+            for col in range(0, W_padded-WW+1, stride):
+                X_column[:,cntr] = padded[i, :, row:row+HH, col:col+WW].reshape(-1)
+                cntr += 1
+        out[i] = (np.dot(W_flatten, X_column) + b.reshape(F, 1)).reshape(F, H_out, W_out)
+
             
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -399,7 +444,40 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, w, b, conv_param = cache
+    padding, stride = conv_param['pad'], conv_param['stride']
+    f, c, filter_height, filter_width = w.shape
+    n, _, output_height, output_width = dout.shape
+
+    # pad x
+    N, C, H, W = x.shape
+    pad_horiz = np.zeros((N, C, H, padding))
+    x_horiz_padded = np.concatenate((pad_horiz, x, pad_horiz), axis=3)
+    pad_vert = np.zeros((N, C, padding, x_horiz_padded.shape[3]))
+    x_padded = np.concatenate((pad_vert, x_horiz_padded, pad_vert), axis=2)
+
+    dx_padded = np.zeros(x_padded.shape)
+    dw = np.zeros(w.shape)
+    db = np.zeros(b.shape)
+
+    w_flat = w.reshape((f, -1))
+
+    for i in range(output_height):
+        for j in range(output_width):
+            dout_slice = dout[:, :, i, j]
+
+            dx_slice_flattened = dout_slice.dot(w_flat)
+            dx_slice = dx_slice_flattened.reshape((n, c, filter_height, filter_width))
+            dx_padded[:, :, i * stride: i * stride + filter_height, j * stride: j * stride + filter_width] += dx_slice
+
+            x_padded_slice = x_padded[:, :, i * stride: i * stride + filter_height, j * stride: j * stride + filter_width]
+            x_slice_flattened = x_padded_slice.reshape((n, -1))
+
+            dw += dout_slice.T.dot(x_slice_flattened).reshape(dw.shape)
+            db += dout_slice.sum(axis=0)
+
+    # crop padding from dx
+    dx = dx_padded[:, :, padding:-padding, padding:-padding]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -433,7 +511,22 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    N, C, H, W = x.shape
+    
+    # output dimensions
+    H_out = int(1 + (H - pool_height) / stride)
+    W_out = int(1 + (W - pool_width) / stride)
+
+    output_shape = (N, C, H_out, W_out)
+        
+    # pooling operation
+    out = np.zeros(output_shape)
+    for num in range(N):
+        for channel in range(C):
+            for row in range(H_out):
+                for col in range(W_out):
+                    out[num, channel, row, col] = (x[num, channel, row*stride:row*stride+pool_height, col*stride:col*stride+pool_width]).max(axis=(0,1))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -460,7 +553,20 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, pool_param = cache
+    pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    N, C, H, W = x.shape
+    H_out, W_out = dout.shape[2], dout.shape[3]
+    
+    dx = np.zeros((N, C, H, W))
+    for num in range(N):
+        for channel in range(C):
+            for row in range(0, H_out):
+                for col in range(0, W_out):
+                    filtered_idx = (x[num, channel, row*stride:row*stride+pool_height, col*stride:col*stride+pool_width]).argmax()
+                    filtered1_idx, filtered2_idx = np.unravel_index(filtered_idx, (pool_height, pool_width))
+                    dx[num, channel, row*stride:row*stride+pool_height, col*stride:col*stride+pool_width][filtered1_idx, filtered2_idx] = dout[num, channel, row, col]
+
                     
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -495,7 +601,23 @@ def avg_pool_forward_naive(x, pool_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    N, C, H, W = x.shape
+    
+    # output dimensions
+    H_out = int(1 + (H - pool_height) / stride)
+    W_out = int(1 + (W - pool_width) / stride)
+
+    #print(W_out)
+    output_shape = (N, C, H_out, W_out)
+        
+    # pooling operation
+    out = np.zeros(output_shape)
+    for num in range(N):
+        for channel in range(C):
+            for row in range(H_out):
+                for col in range(W_out):
+                    out[num, channel, row, col] = (x[num, channel, row*stride:row*stride+pool_height, col*stride:col*stride+pool_width]).mean(axis=(0,1))
 
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -521,9 +643,20 @@ def avg_pool_backward_naive(dout, cache):
     # TODO: Implement the avg-pooling backward pass                           #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-                    
+ 
+    x, pool_param = cache
+    pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    N, C, H, W = x.shape
+    H_out, W_out = dout.shape[2], dout.shape[3]
+    
+    dx = np.zeros((N, C, H, W))
+    for num in range(N):
+        for channel in range(C):
+            for row in range(0, H_out):
+                for col in range(0, W_out):
+                    filtered_idx = np.where(dout != 1/pool_height/pool_width)
+                    filtered1_idx, filtered2_idx = np.unravel_index(filtered_idx, (pool_height, pool_width))
+                    dx[num, channel, row*stride:row*stride+pool_height, col*stride:col*stride+pool_width][filtered1_idx, filtered2_idx] = dout[num, channel, row, col]/W_out
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

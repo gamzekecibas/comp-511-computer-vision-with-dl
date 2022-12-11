@@ -54,7 +54,15 @@ class FourLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        self.params['W1'] = weight_scale*np.random.randn(input_dim, hidden_dim[0])
+        self.params['b1'] = np.zeros(hidden_dim[0])
+        self.params['W2'] = weight_scale*np.random.randn(hidden_dim[0], hidden_dim[1])
+        self.params['b2'] = np.zeros(hidden_dim[1])
+        self.params['W3'] = weight_scale*np.random.randn(hidden_dim[1], hidden_dim[2])
+        self.params['b3'] = np.zeros(hidden_dim[2])
+        self.params['W4'] = weight_scale*np.random.randn(hidden_dim[2], num_classes)
+        self.params['b4'] = np.zeros(num_classes)
+        
     
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -88,7 +96,19 @@ class FourLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        W1, b1 = self.params['W1'], self.params['b1']
+        W2, b2 = self.params['W2'], self.params['b2']
+        W3, b3 = self.params['W3'], self.params['b3']
+        W4, b4 = self.params['W4'], self.params['b4']
+        
+        h1, hidden_cache1 = affine_forward(X, W1, b1)
+        z1, relu_cache1 = relu_forward(h1)
+        h2, hidden_cache2 = affine_forward(z1, W2, b2)
+        z2, relu_cache2 = relu_forward(h2)
+        h3, hidden_cache3 = affine_forward(z2, W3, b3)
+        z3, relu_cache3 = relu_forward(h3)
+        h4, hidden_cache4 = affine_forward(z3, W4, b4)
+        scores, relu_cache4 = relu_forward(h4)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -112,7 +132,27 @@ class FourLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        data_loss, dsoftmax = softmax_loss(scores, y)
+        reg_loss = 0.5*self.reg*(np.sum(W1*W1) + np.sum(W2*W2) + np.sum(W3*W3) + np.sum(W4 * W4))
+        loss = data_loss + reg_loss
+        
+        dr4 = relu_backward(dsoftmax, relu_cache4)
+        dx4, dw4, db4 = affine_backward(dr4, hidden_cache4)
+        dr3 = relu_backward(dx4, relu_cache3)
+        dx3, dw3, db3 = affine_backward(dr3, hidden_cache3)
+        dr2 = relu_backward(dx3, relu_cache2)
+        dx2, dw2, db2 = affine_backward(dr2, hidden_cache2)
+        dr1 = relu_backward(dx2, relu_cache1)
+        dx1, dw1, db1 = affine_backward(dr1, hidden_cache1)
+        
+        grads['W4'] = dw4 + self.reg * W4
+        grads['b4'] = db4
+        grads['W3'] = dw3 + self.reg * W3
+        grads['b3'] = db3
+        grads['W2'] = dw2 + self.reg * W2
+        grads['b2'] = db2
+        grads['W1'] = dw1 + self.reg * W1
+        grads['b1'] = db1
                 
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -177,9 +217,13 @@ class FullyConnectedNet(object):
         #                                                                          #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-                  
-        pass
-
+        net = np.hstack([input_dim, hidden_dims, num_classes])
+  
+        for idx in range(self.num_layers):
+            W = "W" + str(idx+1)
+            b = "b" + str(idx+1)
+            self.params[W] = weight_scale*np.random.randn(net[idx], net[idx+1])
+            self.params[b] = np.zeros(net[idx+1]) 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -223,7 +267,28 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        hidden_len = self.num_layers - 1
+        hidden_caches, lrelu_caches, dropout_caches = [],[],[]
+        lrelu_params = {"alpha": self.alpha}
+       
+        for i in range(hidden_len):
+            W = self.params["W" + str(i+1)]
+            b = self.params["b" + str(i+1)]
+            
+            x, hidden_cache = affine_forward(X, W, b)
+            z, lrelu_cache = leaky_relu_forward(x, lrelu_params)
+            if self.use_dropout:
+                z, dropout_cache = dropout_forward(z, self.dropout_param)
+                dropout_caches.append(dropout_cache)
+            hidden_caches.append(hidden_cache)
+            lrelu_caches.append(lrelu_cache)
+            
+            X = z
+        
+        W = self.params["W" + str(hidden_len+1)]
+        b = self.params["b" + str(hidden_len+1)]
+        scores, cache = affine_forward(X, W, b)
+        hidden_caches.append(cache)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -248,7 +313,25 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        loss, dsoftmax = softmax_loss(scores, y)
+        for i in range(hidden_len+1):
+            W = self.params["W" + str(i+1)]
+            regularization = 0.5*self.reg*np.sum(W*W)
+            loss = loss + regularization
+            
+        
+        dx, dw, db = affine_backward(dsoftmax, hidden_caches[hidden_len])
+        grads["W"+str(hidden_len+1)] = dw + self.reg*self.params["W"+str(hidden_len+1)]
+        grads["b"+str(hidden_len+1)] = db
+        
+        
+        for i in range(hidden_len-1, -1, -1):
+            if self.use_dropout:
+                dx = dropout_backward(dx, dropout_caches[i])  
+            dr = leaky_relu_backward(dx, lrelu_caches[i])
+            dx, dw, db = affine_backward(dr, hidden_caches[i])
+            grads["W"+str(i+1)] = dw + self.reg*self.params["W"+str(i+1)]
+            grads["b"+str(i+1)] = db
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
