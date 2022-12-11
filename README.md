@@ -29,4 +29,4 @@
   *Fully-connected Neural Network* | [ConvolutionalNetworks.ipynb](https://github.com/gamzekecibas/comp-511/blob/main/comp511_assignment2_EA_GK/FullyConnectedNets.ipynb) | *layers.py*, *fc_net.py*, *solver.py*, *optim.py*
   *Dropout* | [Dropout.ipynb](https://github.com/gamzekecibas/comp-511/blob/main/comp511_assignment2_EA_GK/Dropout.ipynb) | *layers.py*, *fc_net.py*
   *Convolutional Networks* | [ConvolutionalNetworks.ipynb](https://github.com/gamzekecibas/comp-511/blob/main/comp511_assignment2_EA_GK/ConvolutionalNetworks.ipynb) | *layers.py*, *fast_layers.py*, *layer_utils.py*, *cnn.py*, 
-  *PyTorch on CIFAR-10r* | [PyTorch.ipynb](https://github.com/gamzekecibas/comp-511/blob/main/comp511_assignment1_EA_GK/four_layer_net.ipynb)  | four_layer_nn.py
+  *PyTorch on CIFAR-10r* | [PyTorch.ipynb](https://github.com/gamzekecibas/comp-511/blob/main/comp511_assignment2_EA_GK/PyTorch.ipynb)  | -
