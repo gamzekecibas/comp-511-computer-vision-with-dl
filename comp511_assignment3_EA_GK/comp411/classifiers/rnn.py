@@ -172,7 +172,8 @@ class CaptioningRNN(object):
         dx, dh0, grads["Wx"], grads["Wh"], grads["b"] = rnn_backward(dh, cache_h)
         grads["W_embed"] = word_embedding_backward(dx, cache_x)
         _, grads["W_proj"], grads["b_proj"] = affine_backward(dh0, cache_h0)
-        
+        if self.gclip != 0:
+            grads = self.clip_grad_norm(grads, self.gclip)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -193,15 +194,17 @@ class CaptioningRNN(object):
         """
         clipped_grads = None
         ###########################################################################
-        # TODO: Implement gradient clipping using gclip value as the threshold.   #
+        # TODO: Implement gradient clipping using gclip value as the threshold.
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-       
-        clipped_grads = grads
+        clipped_grads = {}
         for key in grads:
-            clipped_grads[key] = np.clip(grads[key], -gclip, gclip)
+            norm = np.linalg.norm(grads[key])
+            if norm > gclip:
+                clipped_grads[key] = grads[key] * (gclip / norm)
+            else:
+                clipped_grads[key] = grads[key]
                 
-
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -349,7 +352,10 @@ class CaptioningRNN(object):
             x, _ = word_embedding_forward(x, W_embed)
             h, _ = rnn_step_forward(x, h, Wx, Wh, b)
             scores, _ = temporal_affine_forward(h[:, np.newaxis, :], W_vocab, b_vocab)
-            x = np.random.choice(np.arange(W_vocab.shape[0]), p=np.squeeze(scores))
+            scores = np.squeeze(scores)
+            scores_clipped = scores.clip(min=0)
+            score_probs = scores_clipped/scores_clipped.sum(0)
+            x = np.random.choice(np.arange(len(scores)), p=score_probs)
             captions[:, i] = x
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
