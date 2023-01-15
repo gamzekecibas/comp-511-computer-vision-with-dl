@@ -37,7 +37,7 @@
     - [MS COCO](https://www.kaggle.com/datasets/rtatman/ms-coco)
   - Goal of the assignment: Implementing RNN, Transformer and Generative structures for CV tasks
 
-  - The assignment includes four main parts:  
+  - The assignment includes three main parts:  
 
   **Subjects** | **Notebook** | **Source code(s)** 
   --- | ---| ---
